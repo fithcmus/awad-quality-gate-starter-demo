@@ -1,8 +1,16 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   gates:
@@ -11,10 +19,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install
-      - name: Lint
-        run: npm run lint
-        continue-on-error: true
-      - name: Tests
-        run: npm test || true
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      # The same gate a developer runs: lint, format, unit, contract.
+      # Any failing step fails the job; nothing here is allowed to swallow an error.
+      - run: npm run check
